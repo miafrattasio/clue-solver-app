@@ -14,14 +14,50 @@
         button:hover { background-color: #4cae4c; }
         .info { background-color: #e6f7ff; border-left: 5px solid #2db7f5; padding: 15px; margin-top: 20px; border-radius: 4px; }
         .small { font-size: 0.9em; color: #555; margin-top: 6px; }
+
+
+        .card-selection-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 5px;
+            background-color: #fcfcfc;
+        }
+        .card-group {
+
+            min-width: 150px;
+        }
+        .card-group h4 {
+            margin-top: 0;
+            margin-bottom: 5px;
+            color: #007bff;
+            border-bottom: 1px dotted #ccc;
+            padding-bottom: 3px;
+        }
+        .card-group label {
+            display: flex;
+            font-weight: normal;
+            margin: 2px 0;
+            cursor: pointer;
+            align-items: center;
+        }
+        .card-group input[type="checkbox"] {
+            margin-right: 5px;
+            width: auto; 
+            padding: 0;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Clue Solver: Game Setup</h1>
         <form method="POST" action="/">
+            
             <label for="version">Game Version:</label>
-            <select id="version" name="version" required>
+            <select id="version" name="version" required onchange="updateCardLists(this.value)">
                 <option value="original" {% if edition == 'original' %}selected{% endif %}>Original Clue (6 People, 6 Weapons, 9 Rooms)</option>
                 <option value="master" {% if edition == 'master' %}selected{% endif %}>Master Detective (Expanded Cards)</option>
             </select>
@@ -32,28 +68,82 @@
             <label for="other_players">Other Player Names:</label>
             <input type="text" id="other_players" name="other_players" placeholder="e.g., Plum, Scarlett, Mustard" required>
             
-            <label for="hand_cards">Your Starting Hand (select all that apply):</label>
-            <div class="small">Use Ctrl/Cmd+Click (or Shift+Click) to select multiple cards.</div>
-            <select id="hand_cards" name="hand_cards" multiple size="10" required>
-                <optgroup label="Suspects">
-                    {% for s in suspects %}
-                        <option value="{{ s }}">{{ s }}</option>
-                    {% endfor %}
-                </optgroup>
-                <optgroup label="Weapons">
-                    {% for w in weapons %}
-                        <option value="{{ w }}">{{ w }}</option>
-                    {% endfor %}
-                </optgroup>
-                <optgroup label="Rooms">
-                    {% for r in rooms %}
-                        <option value="{{ r }}">{{ r }}</option>
-                    {% endfor %}
-                </optgroup>
-            </select>
+            <label>Your Starting Hand (Check all that apply):</label>
+            
+            <div id="hand-cards-container" class="card-selection-group">
+                </div>
 
             <button type="submit">Start Game and Initialize Solver</button>
         </form>
     </div>
+
+<script>
+
+    const ALL_CARDS = {
+        'original': {
+            "Suspect": [
+                "Miss Scarlett", "Colonel Mustard", "Mrs. White", "Mr. Green",
+                "Mrs. Peacock", "Professor Plum"
+            ],
+            "Weapon": [
+                "Candlestick", "Knife", "Lead Pipe", "Revolver", "Rope", "Wrench"
+            ],
+            "Room": [
+                "Hall", "Lounge", "Dining Room", "Kitchen", "Ballroom",
+                "Conservatory", "Billiard Room", "Library", "Study"
+            ]
+        },
+        'master': {
+            "Suspect": [
+                "Colonel Mustard", "Professor Plum", "Mrs. Peacock", "Mr. Green",
+                "Miss Scarlet", "Mrs. White", "Miss Peach", "Monsieur Brunette",
+                "Madame Rose", "Sergeant Gray"
+            ],
+            "Weapon": [
+                "Candlestick", "Knife", "Lead Pipe", "Revolver", "Rope",
+                "Wrench", "Poison", "Horseshoe"
+            ],
+            "Room": [
+                "Carriage House", "Trophy Room", "Kitchen", "Dining Room",
+                "Drawing Room", "Gazebo", "Courtyard", "Fountain", "Library",
+                "Billiard Room", "Studio", "Conservatory"
+            ]
+        }
+    };
+    
+
+    function generateCardGroups(cards) {
+        let html = '';
+        const cardSets = [
+            { title: 'Suspects', list: cards.Suspect },
+            { title: 'Weapons', list: cards.Weapon },
+            { title: 'Rooms', list: cards.Room }
+        ];
+
+        cardSets.forEach(cardSet => {
+            html += `<div class="card-group"><h4>${cardSet.title}</h4>`;
+            cardSet.list.forEach(card => {
+                // name="hand_cards" is crucial for the Flask backend to get the list
+                html += `<label><input type="checkbox" name="hand_cards" value="${card}">${card}</label>`;
+            });
+            html += `</div>`;
+        });
+        return html;
+    }
+
+
+    function updateCardLists(version) {
+        const container = document.getElementById('hand-cards-container');
+        const cards = ALL_CARDS[version] || ALL_CARDS['original'];
+        container.innerHTML = generateCardGroups(cards);
+    }
+    
+
+    document.addEventListener('DOMContentLoaded', () => {
+
+        const initialVersion = document.getElementById('version').value;
+        updateCardLists(initialVersion);
+    });
+</script>
 </body>
 </html>

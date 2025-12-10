@@ -34,6 +34,23 @@ def get_engine():
 def save_engine(engine):
     session['engine_json'] = json.dumps(engine, cls=CustomEncoder)
 
+#new
+def render_card_groups(suspects, weapons, rooms):
+    """Generates the HTML for the starting hand checkboxes."""
+    html = ''
+    # Structure the cards into groups for iteration
+    card_sets = [('Suspects', suspects), ('Weapons', weapons), ('Rooms', rooms)]
+    for title, cards in card_sets:
+        html += f'<div class="card-group"><h4>{title}</h4>'
+        for card in cards:
+            html += f'<label><input type="checkbox" name="hand_cards" value="{card}">{card}</label>'
+        html += '</div>'
+    return html
+
+app.jinja_env.globals.update(render_card_groups=render_card_groups)
+
+
+
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -64,6 +81,8 @@ def index():
                 other_players = [p.strip() for p in other_players_input.split(',') if p.strip()]
                 player_names = [user_name] + other_players
 
+                hand_cards = request.form.getlist('hand_cards') 
+                hand_cards = [c.strip() for c in hand_cards if c.strip()]
                 # getlist to read multi-select starting hand
                 hand_cards = request.form.getlist('hand_cards')
                 hand_cards = [c.strip() for c in hand_cards if c.strip()]

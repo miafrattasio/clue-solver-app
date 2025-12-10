@@ -125,7 +125,7 @@ class ClueDeductionEngine:
             self.knowledge[card][location] = status
             
             if status == HAS_CARD_NUM:
-                self._add_log(f"Deduction:{location.capitalize()} must have {card}")
+                self._add_log(f"Deduction: {location.capitalize()} must have {card}")
                 for other_location in self.players + ['Envelope']:
                     if other_location != location:
                         self._update_knowledge(card, other_location, NO_CARD_NUM)
