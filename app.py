@@ -1,4 +1,3 @@
-# Imports remain the same
 from flask import Flask, render_template, request, session, redirect, url_for
 from clue_solver import ClueDeductionEngine, ORIGINAL_CARDS, MASTER_DETECTIVE_CARDS, HAS_CARD, NO_CARD
 
@@ -10,7 +9,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your-default-secret-key')
 
 
-# Custom Encoder/Decoder remain the same
+
 class CustomEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, ClueDeductionEngine):
@@ -40,29 +39,49 @@ def save_engine(engine):
 def index():
     engine = get_engine()
     
-    if request.method == 'POST':
-        if 'version' in request.form and engine is None:
-            # Setup logic remains the same
-            version = request.form.get('version')
-            card_sets = ORIGINAL_CARDS if version == 'original' else MASTER_DETECTIVE_CARDS
-            
-            user_name = request.form.get('user_name').strip()
-            other_players_input = request.form.get('other_players')
-            other_players = [p.strip() for p in other_players_input.split(',') if p.strip()]
-            
-            player_names = [user_name] + other_players
-            hand_cards = [c.strip() for c in request.form.get('hand_cards').split(',') if c.strip()]
-            
-            engine = ClueDeductionEngine(player_names, card_sets, user_name)
-            engine.input_player_hand(hand_cards)
-            
-            save_engine(engine)
-            return redirect(url_for('index'))
-
+    # When engine is not yet created we show the setup page
     if engine is None:
-        return render_template('setup.html')
+        # detect edition from form if submitted, otherwise default to 'original'
+        edition = request.form.get('version') if request.method == 'POST' else request.args.get('edition', 'original')
+        if edition not in ('original', 'master'):
+            edition = 'original'
+
+        # select the correct card sets
+        card_sets = ORIGINAL_CARDS if edition == 'original' else MASTER_DETECTIVE_CARDS
+        # create flat lists for template convenience
+        suspects = card_sets['Suspect']
+        weapons = card_sets['Weapon']
+        rooms = card_sets['Room']
+
+        # If POST, initialize game
+        if request.method == 'POST' and 'version' in request.form:
+            try:
+                version = request.form.get('version')
+                card_sets_for_engine = ORIGINAL_CARDS if version == 'original' else MASTER_DETECTIVE_CARDS
+
+                user_name = request.form.get('user_name').strip()
+                other_players_input = request.form.get('other_players')
+                other_players = [p.strip() for p in other_players_input.split(',') if p.strip()]
+                player_names = [user_name] + other_players
+
+                # getlist to read multi-select starting hand
+                hand_cards = request.form.getlist('hand_cards')
+                hand_cards = [c.strip() for c in hand_cards if c.strip()]
+
+                engine = ClueDeductionEngine(player_names, card_sets_for_engine, user_name)
+                engine.input_player_hand(hand_cards)
+
+                save_engine(engine)
+                return redirect(url_for('index'))
+            except Exception as e:
+
+                return render_template('setup.html', edition=edition, suspects=suspects, weapons=weapons, rooms=rooms)
+
+        # Render setup template with lists for dropdowns
+        return render_template('setup.html', edition=edition, suspects=suspects, weapons=weapons, rooms=rooms)
+
     else:
-        # --- Handle Opponent's Suggestion Log (Multiple Refuters Logic) ---
+        # Handle Opponent's Suggestion Log (Multiple Refuters Logic) 
         if request.method == 'POST' and 'suggester' in request.form:
             try:
                 suggester = request.form['suggester'].lower()
@@ -79,7 +98,7 @@ def index():
                     for refuter_name in refuters:
                         engine.log_suggestion(suggester, suspect, weapon, room, refuter_name, True)
                         
-                    # B. Handle Passers (Players who did NOT show a card)
+                    # B. Handle Passers 
                     all_non_refuters = [p for p in engine.players if p != suggester and p not in refuters]
                     
                     for passer in all_non_refuters:
@@ -87,7 +106,7 @@ def index():
                              engine._update_knowledge(card, passer.lower(), NO_CARD)
                              
                 else:
-                    # C. Handle No Refuters (Suggestion went all the way around)
+                    #
                     engine.log.append("-> Elimination: Suggestion went all the way around. EVERY player must be marked NO CARD for these three cards.")
                     for player in engine.players:
                         for card in suggestion:
@@ -102,12 +121,14 @@ def index():
 
 
         # Get data for rendering
-        # NEW: The get_status_summary now returns the card history
         solution, header, table, possibilities, cards_shown_history = engine.get_status_summary()
         current_log = engine.log
         engine.log = [] 
         save_engine(engine)
-        
+
+        # Build a mapping from card name -> table row for deterministic lookups in template
+        table_map = { row[0]: row for row in table }
+
         # Render the main game template
         return render_template(
             'game.html',
@@ -117,13 +138,14 @@ def index():
             solution=solution,
             header=header,
             table=table,
+            table_map=table_map,               
             possibilities=possibilities,
             log=current_log,
-            cards_shown_history=cards_shown_history # NEW: Passing history to the template
+            cards_shown_history=cards_shown_history 
         )
 
 
-# --- Log Refute By User (Updated to track card shown) ---
+# Log Refute By User 
 @app.route('/log_refute_by_user', methods=['POST'])
 def log_refute_by_user():
     engine = get_engine()
@@ -137,7 +159,7 @@ def log_refute_by_user():
         if card_shown in engine.all_cards:
             engine._update_knowledge(card_shown, engine.user_name, HAS_CARD)
             
-            # CRITICAL ADDITION: Record the card shown in the history tracker
+            # Record the card shown in the history tracker
             if suggester in engine.cards_shown_to_player:
                 if card_shown not in engine.cards_shown_to_player[suggester]:
                     engine.cards_shown_to_player[suggester].append(card_shown)

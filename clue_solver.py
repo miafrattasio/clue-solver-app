@@ -3,33 +3,59 @@ import json
 
 # --- CARD DEFINITIONS ---
 ORIGINAL_CARDS = {
-    "Suspect": ["Miss Scarlett", "Colonel Mustard", "Mrs. White", "Reverend Green", "Mrs. Peacock", "Professor Plum"],
-    "Weapon": ["Candlestick", "Dagger", "Lead Pipe", "Revolver", "Rope", "Wrench"],
-    "Room": ["Kitchen", "Ballroom", "Conservatory", "Dining Room", "Billiard Room", "Library", "Lounge", "Hall", "Study"]
+    # Classics
+    "Suspect": [
+        "Miss Scarlett",
+        "Colonel Mustard",
+        "Mrs. White",
+        "Mr. Green",
+        "Mrs. Peacock",
+        "Professor Plum"
+    ],
+    "Weapon": [
+        "Candlestick",
+        "Knife",       
+        "Lead Pipe",
+        "Revolver",
+        "Rope",
+        "Wrench"
+    ],
+
+    "Room": [
+        "Hall",
+        "Lounge",
+        "Dining Room",
+        "Kitchen",
+        "Ballroom",
+        "Conservatory",
+        "Billiard Room",
+        "Library",
+        "Study"
+    ]
 }
 
 # Master Detective Clue (10 suspects, 8 weapons, 12 rooms = 30 cards total)
 MASTER_DETECTIVE_CARDS = {
     "Suspect": [
-        "Colonel Mustard", "Professor Plum", "Mrs. Peacock", "Mr. Green", 
-        "Miss Scarlet", "Mrs. White", "Miss Peach", "Monsieur Brunette", 
+        "Colonel Mustard", "Professor Plum", "Mrs. Peacock", "Mr. Green",
+        "Miss Scarlet", "Mrs. White", "Miss Peach", "Monsieur Brunette",
         "Madame Rose", "Sergeant Gray"
     ],
     "Weapon": ["Candlestick", "Knife", "Lead Pipe", "Revolver", "Rope", "Wrench", "Poison", "Horseshoe"],
     "Room": [
-        "Carriage House", "Trophy Room", "Kitchen", "Dining Room", "Drawing Room", 
-        "Gazebo", "Courtyard", "Fountain", "Library", "Billiard Room", 
+        "Carriage House", "Trophy Room", "Kitchen", "Dining Room", "Drawing Room",
+        "Gazebo", "Courtyard", "Fountain", "Library", "Billiard Room",
         "Studio", "Conservatory"
     ]
 }
 
-# --- KNOWLEDGE CONSTANTS (USING NUMBERS FOR COMPARISON LOGIC) ---
+
 UNKNOWN_NUM = 0
 NO_CARD_NUM = 1
 HAS_CARD_NUM = 2
 IN_ENVELOPE_NUM = 3
 
-# --- KNOWLEDGE SYMBOLS (FOR DISPLAY) ---
+
 KNOWLEDGE_SYMBOLS = {
     UNKNOWN_NUM: '',      
     NO_CARD_NUM: '✗',    
@@ -57,7 +83,7 @@ class ClueDeductionEngine:
         
         self.player_card_counts = {player: 0 for player in self.players}
         
-        # NEW: Tracker for cards the user showed to opponents
+        # Tracker for cards the user showed to opponents
         # Format: {opponent_name: [list of cards shown]}
         self.cards_shown_to_player = {
             player: [] for player in self.players if player != self.user_name
@@ -71,7 +97,7 @@ class ClueDeductionEngine:
 
         self.log = []
 
-    # --- Serialization Methods remain the same ---
+    # Serialization Methods
     def to_json(self):
         data = self.__dict__.copy()
         data['card_sets_key'] = 'MASTER_DETECTIVE_CARDS' if self.card_sets == MASTER_DETECTIVE_CARDS else 'ORIGINAL_CARDS'
@@ -88,7 +114,7 @@ class ClueDeductionEngine:
         instance.__dict__.update(data)
         return instance
 
-    # --- Deduction Logic remains the same, except for new tracking in _update_knowledge ---
+    #Deduction Logic 
     
     def _add_log(self, message):
         self.log.append(message)
@@ -99,20 +125,20 @@ class ClueDeductionEngine:
             self.knowledge[card][location] = status
             
             if status == HAS_CARD_NUM:
-                self._add_log(f"-> Deduction: **{location.capitalize()}** must **HAVE** **{card}**")
+                self._add_log(f"Deduction:{location.capitalize()} must have {card}")
                 for other_location in self.players + ['Envelope']:
                     if other_location != location:
                         self._update_knowledge(card, other_location, NO_CARD_NUM)
                 self.check_player_hand_complete(location)
             
             if status == IN_ENVELOPE_NUM:
-                self._add_log(f"-> Deduction: **{card}** is **IN THE ENVELOPE!**")
+                self._add_log(f"Deduction: {card} is in the envelope!")
                 for other_player in self.players:
                     self._update_knowledge(card, other_player, NO_CARD_NUM)
             
             self.check_for_solution_card(card)
             
-    # --- Other methods (check_for_solution_card, check_player_hand_complete, input_player_hand, log_suggestion) remain the same ---
+
     
     def input_player_hand(self, card_list):
         """Initial input of the user's hand."""
@@ -123,7 +149,7 @@ class ClueDeductionEngine:
                 continue
             self._update_knowledge(card, self.user_name, HAS_CARD_NUM)
         
-        self._add_log(f"Initial hand of **{sum(1 for card in card_list if card in self.all_cards)} cards** logged for **{self.user_name.capitalize()}**.")
+        self._add_log(f"Initial hand of {sum(1 for card in card_list if card in self.all_cards)} cards logged for {self.user_name.capitalize()}.")
 
     def log_suggestion(self, suggester, suspect, weapon, room, refuter, was_card_shown):
         """Logs a suggestion and runs the smart deduction logic."""
@@ -132,22 +158,22 @@ class ClueDeductionEngine:
         refuter = refuter.lower()
         suggestion = [suspect, weapon, room]
         
-        self._add_log(f"--- Turn Log: **{suggester.capitalize()}** suggested **{suspect}**, **{weapon}**, **{room}** ---")
+        self._add_log(f"Turn Log: {suggester.capitalize()} suggested {suspect}, {weapon}, {room} ---")
         
         if was_card_shown and refuter != 'none':
             num_no_card = sum(1 for card in suggestion if self.knowledge[card][refuter] == NO_CARD_NUM)
             
             if num_no_card == 2:
                 card_must_be = next(c for c in suggestion if self.knowledge[c][refuter] != NO_CARD_NUM)
-                self._add_log(f"*** SMART DEDUCTION: **{refuter.capitalize()}** is KNOWN NOT to have 2 of 3 cards. They **MUST** have shown **{card_must_be}**! ***")
+                self._add_log(f"SMART DEDUCTION: {refuter.capitalize()} is known not to have 2 of 3 cards. They must have shown {card_must_be}!")
                 self._update_knowledge(card_must_be, refuter, HAS_CARD_NUM)
             elif num_no_card == 1:
-                self._add_log(f"-> Partial Deduction: **{refuter.capitalize()}** has one of the two remaining possible cards.")
+                self._add_log(f"Partial Deduction: {refuter.capitalize()} has one of the two remaining possible cards.")
             elif num_no_card == 0:
-                 self._add_log(f"-> Partial Deduction: **{refuter.capitalize()}** has one of the three possible cards.")
+                 self._add_log(f"Partial Deduction: {refuter.capitalize()} has one of the three possible cards.")
         
     def check_for_solution_card(self, card):
-        # Implementation remains the same
+
         if self.knowledge[card]['Envelope'] == UNKNOWN_NUM:
             no_card_count = sum(1 for player in self.players if self.knowledge[card][player] == NO_CARD_NUM)
             if no_card_count == self.num_players:
@@ -165,14 +191,14 @@ class ClueDeductionEngine:
                  self._update_knowledge(card, player, HAS_CARD_NUM)
 
     def check_player_hand_complete(self, player):
-        # Implementation remains the same
+
         if player == 'Envelope':
             return
             
         cards_known = sum(1 for card in self.all_cards if self.knowledge[card][player] == HAS_CARD_NUM)
         
         if cards_known == self.player_card_counts[player]:
-            self._add_log(f"*** SMART DEDUCTION: **{player.capitalize()}'s** hand is COMPLETE! (All {self.player_card_counts[player]} cards are known) ***")
+            self._add_log(f"SMART DEDUCTION: {player.capitalize()}'s hand is complete! (All {self.player_card_counts[player]} cards are known)")
             for card in self.all_cards:
                 if self.knowledge[card][player] == UNKNOWN_NUM:
                     self._update_knowledge(card, player, NO_CARD_NUM)
@@ -185,7 +211,7 @@ class ClueDeductionEngine:
                 if self.knowledge[card]['Envelope'] == IN_ENVELOPE_NUM:
                     solution[card_type] = card
         
-        # --- Create Deduction Matrix with SYMBOLS ---
+        # Create Deduction Matrix with SYMBOLS 
         header = ["Card"] + [p.capitalize() for p in self.players] + ["Envelope"]
         table = []
 
@@ -196,7 +222,7 @@ class ClueDeductionEngine:
                 row.append(KNOWLEDGE_SYMBOLS.get(numerical_status, ''))
             table.append(row)
             
-        # --- Create Possibility Summary ---
+        # Create Possibility Summary 
         possibilities = {}
         for card_type in self.card_sets:
             possible_solutions = [
@@ -205,5 +231,5 @@ class ClueDeductionEngine:
             ]
             possibilities[card_type] = possible_solutions
 
-        # NEW: Return the card show history
+        # Return the card show history
         return solution, header, table, possibilities, self.cards_shown_to_player

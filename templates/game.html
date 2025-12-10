@@ -38,6 +38,15 @@
         .history-table th { background-color: #f0f8ff; color: #333; }
         .history-table td { font-size: 0.95em; }
         .shown-card { background-color: #e2f0e2; padding: 2px 5px; border-radius: 3px; border: 1px solid #c3e6cb; display: inline-block; margin: 2px; }
+        
+        /* Section title within table */
+        .matrix-section-title th {
+            text-align: left;
+            background: #f7f7fb;
+            font-weight: bold;
+            padding: 10px;
+            font-size: 1.05em;
+        }
     </style>
 </head>
 <body>
@@ -110,7 +119,23 @@
                 
                 <div class="form-row full">
                     <label for="card_shown">Which specific card did you show them?</label>
-                    <input type="text" id="card_shown" name="card_shown" placeholder="e.g., Candlestick" required>
+                    <select id="card_shown" name="card_shown" required>
+                        <optgroup label="Suspects">
+                            {% for s in card_sets['Suspect'] %}
+                                <option value="{{ s }}">{{ s }}</option>
+                            {% endfor %}
+                        </optgroup>
+                        <optgroup label="Weapons">
+                            {% for w in card_sets['Weapon'] %}
+                                <option value="{{ w }}">{{ w }}</option>
+                            {% endfor %}
+                        </optgroup>
+                        <optgroup label="Rooms">
+                            {% for r in card_sets['Room'] %}
+                                <option value="{{ r }}">{{ r }}</option>
+                            {% endfor %}
+                        </optgroup>
+                    </select>
                 </div>
                 
                 <button type="submit">Log Card Shown</button>
@@ -133,13 +158,25 @@
                 
                 <div class="form-row">
                     <label for="suspect">Suspect Suggested:</label>
-                    <input type="text" id="suspect" name="suspect" placeholder="e.g., Colonel Mustard" required>
+                    <select id="suspect" name="suspect" required>
+                        {% for s in card_sets['Suspect'] %}
+                        <option value="{{ s }}">{{ s }}</option>
+                        {% endfor %}
+                    </select>
                     
                     <label for="weapon">Weapon Suggested:</label>
-                    <input type="text" id="weapon" name="weapon" placeholder="e.g., Wrench" required>
+                    <select id="weapon" name="weapon" required>
+                        {% for w in card_sets['Weapon'] %}
+                        <option value="{{ w }}">{{ w }}</option>
+                        {% endfor %}
+                    </select>
 
                     <label for="room">Room Suggested:</label>
-                    <input type="text" id="room" name="room" placeholder="e.g., Library" required>
+                    <select id="room" name="room" required>
+                        {% for r in card_sets['Room'] %}
+                        <option value="{{ r }}">{{ r }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
 
                 <div class="form-row full">
@@ -169,14 +206,49 @@
                 </tr>
             </thead>
             <tbody>
-                {% for row in table %}
-                <tr>
-                    <td>{{ row[0] }}</td>
-                    {% for status in row[1:] %}
-                    <td class="symbol-cell" data-status="{{ status }}">{{ status }}</td>
-                    {% endfor %}
-                </tr>
+
+                <!-- Suspects -->
+                <tr class="matrix-section-title"><th colspan="{{ header|length }}">Suspects</th></tr>
+                {% for card in card_sets['Suspect'] %}
+                    {% set row = table_map.get(card) %}
+                    {% if row %}
+                    <tr>
+                        <td>{{ row[0] }}</td>
+                        {% for status in row[1:] %}
+                            <td class="symbol-cell" data-status="{{ status }}">{{ status }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endif %}
                 {% endfor %}
+
+                <!-- Weapons -->
+                <tr class="matrix-section-title"><th colspan="{{ header|length }}">Weapons</th></tr>
+                {% for card in card_sets['Weapon'] %}
+                    {% set row = table_map.get(card) %}
+                    {% if row %}
+                    <tr>
+                        <td>{{ row[0] }}</td>
+                        {% for status in row[1:] %}
+                            <td class="symbol-cell" data-status="{{ status }}">{{ status }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endif %}
+                {% endfor %}
+
+                <!-- Rooms -->
+                <tr class="matrix-section-title"><th colspan="{{ header|length }}">Rooms</th></tr>
+                {% for card in card_sets['Room'] %}
+                    {% set row = table_map.get(card) %}
+                    {% if row %}
+                    <tr>
+                        <td>{{ row[0] }}</td>
+                        {% for status in row[1:] %}
+                            <td class="symbol-cell" data-status="{{ status }}">{{ status }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endif %}
+                {% endfor %}
+
             </tbody>
         </table>
         

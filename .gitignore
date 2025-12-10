@@ -6,7 +6,7 @@ __pycache__/
 venv/
 .venv/
 
-# Flask Session (Local testing cache)
+# Flask Session 
 .flaskenv
 
 # Deployment/Cloud Files
@@ -15,5 +15,5 @@ venv/
 # Logs
 *.log
 
-# Configuration (If you were storing local secrets)
+# Configuration 
 # .env
