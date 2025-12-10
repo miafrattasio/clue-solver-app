@@ -137,7 +137,19 @@ class ClueDeductionEngine:
                     self._update_knowledge(card, other_player, NO_CARD_NUM)
             
             self.check_for_solution_card(card)
+            self.deduce_envelope_by_elimination()
             
+    def deduce_envelope_by_elimination(self):
+        for type_name, cards in self.card_sets.items():
+            unknown = []
+            for card in cards:
+                if self.knowledge[card]['Envelope'] not in (NO_CARD_NUM, IN_ENVELOPE_NUM):
+                    unknown.append(card)
+
+            # Exactly one unknown card in the category?
+            if len(unknown) == 1:
+                card = unknown[0]
+                self._update_knowledge(card, 'Envelope', IN_ENVELOPE_NUM)
 
     
     def input_player_hand(self, card_list):

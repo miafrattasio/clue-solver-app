@@ -115,7 +115,7 @@ def index():
                 suggestion = [suspect, weapon, room]
                 refuters = request.form.getlist('refuters') 
                 
-                engine.log.append(f"--- Turn Log: **{suggester.capitalize()}** suggested **{suspect}**, **{weapon}**, **{room}** ---")
+                engine.log.append(f"Turn Log: {suggester.capitalize()} suggested {suspect}, {weapon}, {room}")
                 
                 # A. Handle Refuters (Players who showed a card)
                 if refuters:
@@ -130,11 +130,7 @@ def index():
                              engine._update_knowledge(card, passer.lower(), NO_CARD)
                              
                 else:
-                    #
-                    engine.log.append("-> Elimination: Suggestion went all the way around. EVERY player must be marked NO CARD for these three cards.")
-                    for player in engine.players:
-                        for card in suggestion:
-                            engine._update_knowledge(card, player.lower(), NO_CARD)
+                    engine.log.append("No one showed a card.")
 
                 save_engine(engine)
                 return redirect(url_for('index'))
@@ -188,7 +184,7 @@ def log_refute_by_user():
                 if card_shown not in engine.cards_shown_to_player[suggester]:
                     engine.cards_shown_to_player[suggester].append(card_shown)
             
-            engine.log.append(f"--- Turn Log: **{suggester.capitalize()}** suggested, and **YOU** refuted by showing **{card_shown}**.")
+            engine.log.append(f"Turn Log: {suggester.capitalize()} suggested, and you showed{card_shown}.")
         else:
             engine.log.append(f"ERROR: Could not log your refutation. Card '{card_shown}' not recognized.")
     except Exception as e:
