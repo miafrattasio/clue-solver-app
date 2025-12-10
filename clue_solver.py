@@ -170,7 +170,7 @@ class ClueDeductionEngine:
         refuter = refuter.lower()
         suggestion = [suspect, weapon, room]
         
-        self._add_log(f"Turn Log: {suggester.capitalize()} suggested {suspect}, {weapon}, {room} ---")
+        self._add_log(f"Turn Log: {suggester.capitalize()} suggested {suspect}, {weapon}, {room}")
         
         if was_card_shown and refuter != 'none':
             num_no_card = sum(1 for card in suggestion if self.knowledge[card][refuter] == NO_CARD_NUM)

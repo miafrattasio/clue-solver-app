@@ -130,7 +130,13 @@ def index():
                              engine._update_knowledge(card, passer.lower(), NO_CARD)
                              
                 else:
-                    engine.log.append("No one showed a card.")
+                    engine.log.append("No one showed a card. All other players must not have any of these cards.")
+                    
+                    for player in engine.players:
+                        if player != suggester:
+                            for card in suggestion:
+                                engine._update_knowledge(card, player.lower(), NO_CARD)
+
 
                 save_engine(engine)
                 return redirect(url_for('index'))
