@@ -1,0 +1,19 @@
+# Python files
+__pycache__/
+*.pyc
+
+# Virtual Environment
+venv/
+.venv/
+
+# Flask Session (Local testing cache)
+.flaskenv
+
+# Deployment/Cloud Files
+.gcloudignore
+
+# Logs
+*.log
+
+# Configuration (If you were storing local secrets)
+# .env

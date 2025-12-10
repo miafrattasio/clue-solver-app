@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clue Solver - Game Running</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1, h2 { color: #333; margin-top: 25px; }
+        .log { background-color: #e6f7ff; border-left: 5px solid #2db7f5; padding: 15px; margin-bottom: 20px; border-radius: 4px; max-height: 200px; overflow-y: auto; }
+        .log strong { color: #004085; }
+        .solution { background-color: #d4edda; border: 1px solid #c3e6cb; padding: 15px; margin-bottom: 20px; border-radius: 4px; }
+        .solution h3 { color: #155724; margin-top: 0; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; table-layout: fixed; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 1.1em; }
+        th { background-color: #f2f2f2; font-size: 0.9em;}
+        td.symbol-cell { font-weight: bold; }
+        .possibilities { padding: 10px 0; }
+        .possibilities p { margin: 5px 0; }
+        .form-section { background-color: #fff3cd; border: 1px solid #ffeeba; padding: 20px; border-radius: 4px; margin-top: 30px; }
+        .form-section.user-refute { background-color: #d1ecf1; border-color: #bee5eb; margin-bottom: 20px; }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        input[type="text"], select { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .form-row.full { grid-template-columns: 1fr; }
+        button { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; margin-top: 15px; }
+        button.reset { background-color: #dc3545; }
+        
+        /* Symbol Styles */
+        .symbol-cell[data-status="✓"] { color: #28a745; }
+        .symbol-cell[data-status="✗"] { color: #dc3545; }
+        .symbol-cell[data-status="⭐"] { background-color: #ffc107; color: white; }
+
+        /* Card History Table Styling */
+        .history-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .history-table th, .history-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .history-table th { background-color: #f0f8ff; color: #333; }
+        .history-table td { font-size: 0.95em; }
+        .shown-card { background-color: #e2f0e2; padding: 2px 5px; border-radius: 3px; border: 1px solid #c3e6cb; display: inline-block; margin: 2px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Clue Solver: Game in Progress</h1>
+        <p><strong>Your Name:</strong> {{ user_name.capitalize() }} | <strong>Players:</strong> {{ players | join(', ') }} | <a href="/reset" class="reset-link">Reset Game</a></p>
+
+        {% if solution|length == 3 %}
+        <div class="solution">
+            <h3>MYSTERY SOLVED!</h3>
+            <p><strong>Murderer:</strong> {{ solution.Suspect }}</p>
+            <p><strong>Weapon:</strong> {{ solution.Weapon }}</p>
+            <p><strong>Room:</strong> {{ solution.Room }}</p>
+        </div>
+        {% else %}
+        
+        <h2>Deduction Log</h2>
+        <div class="log">
+            {% for entry in log %}
+                <p>{{ entry|safe }}</p>
+            {% endfor %}
+        </div>
+
+        <h2>Card Showing History</h2>
+        <table class="history-table">
+            <thead>
+                <tr>
+                    <th style="width: 20%;">Player Asked</th>
+                    <th>Cards You Have Shown Them</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for player, cards in cards_shown_history.items() %}
+                <tr>
+                    <td>{{ player.capitalize() }}</td>
+                    <td>
+                        {% if cards|length > 0 %}
+                            {% for card in cards %}
+                                <span class="shown-card">{{ card }}</span>
+                            {% endfor %}
+                        {% else %}
+                            (No cards shown to {{ player.capitalize() }} yet)
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h2>Remaining Possibilities</h2>
+        <div class="possibilities">
+            {% for card_type, cards in possibilities.items() %}
+                <p><strong>Possible {{ card_type }}s ({{ cards|length }}):</strong> {{ cards|join(', ') }}</p>
+            {% endfor %}
+        </div>
+        
+        <div class="form-section user-refute">
+            <h2>Log a Card You Show</h2>
+            <form method="POST" action="/log_refute_by_user">
+                <div class="form-row full">
+                    <label for="suggester_refute">Which player suggested the cards to you?</label>
+                    <select id="suggester_refute" name="suggester" required>
+                        {% for player in players %}
+                            {% if player.lower() != user_name %}
+                                <option value="{{ player }}">{{ player }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-row full">
+                    <label for="card_shown">Which specific card did you show them?</label>
+                    <input type="text" id="card_shown" name="card_shown" placeholder="e.g., Candlestick" required>
+                </div>
+                
+                <button type="submit">Log Card Shown</button>
+            </form>
+        </div>
+        
+        <div class="form-section">
+            <h2>Log Opponent's Suggestion</h2>
+            <form method="POST" action="/">
+                <div class="form-row full">
+                    <label for="suggester">Who made the suggestion?</label>
+                    <select id="suggester" name="suggester" required>
+                        {% for player in players %}
+                            {% if player.lower() != user_name %}
+                                <option value="{{ player }}">{{ player }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-row">
+                    <label for="suspect">Suspect Suggested:</label>
+                    <input type="text" id="suspect" name="suspect" placeholder="e.g., Colonel Mustard" required>
+                    
+                    <label for="weapon">Weapon Suggested:</label>
+                    <input type="text" id="weapon" name="weapon" placeholder="e.g., Wrench" required>
+
+                    <label for="room">Room Suggested:</label>
+                    <input type="text" id="room" name="room" placeholder="e.g., Library" required>
+                </div>
+
+                <div class="form-row full">
+                    <label>Which player(s) showed a card? (leave blank if no one showed)</label>
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 5px;">
+                        {% for player in players %}
+                            {% if player.lower() != user_name %}
+                                <input type="checkbox" id="refuter_{{ player }}" name="refuters" value="{{ player.lower() }}">
+                                <label for="refuter_{{ player }}" style="display: inline-block; font-weight: normal;">{{ player }}</label>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <button type="submit">Log Turn & Run Deduction</button>
+            </form>
+        </div>
+
+        <h2>Deduction Matrix</h2>
+        <p>Key: Empty=Unknown | ✓=Has Card | ✗=No Card | ⭐=Envelope/Solution</p>
+        <table>
+            <thead>
+                <tr>
+                    {% for col in header %}
+                        <th>{{ col|replace(user_name.capitalize(), 'YOU') }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in table %}
+                <tr>
+                    <td>{{ row[0] }}</td>
+                    {% for status in row[1:] %}
+                    <td class="symbol-cell" data-status="{{ status }}">{{ status }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        {% endif %}
+    </div>
+</body>
+</html>
